@@ -5,8 +5,8 @@ import logging
 import sqlite3
 
 DEBUG_MODE = True
-DATABASE_FILE = 'weather_data.db'
-DATABASE_TABLE = 'weather'
+DATABASE_FILE = 'edge_database.db'
+DATABASE_TABLE = 'readings'
 SERIAL_PORT = '/dev/ttyACM0'
 
 
@@ -66,7 +66,7 @@ def load(data: tuple, db_conn: sqlite3.Connection, table_name: str) -> None:
 	cursor = db_conn.cursor()
 	placeholders = ', '.join(['?'] * len(data))
 
-	query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+	query = f"INSERT INTO {table_name} (LPG, CH4, CO, Temperature) VALUES ({placeholders})"
 	cursor.execute(query, data)
 
 	db_conn.commit()
@@ -76,6 +76,7 @@ def main():
 	"""Main ETL pipeline procedure."""
 	arduino = Serial(SERIAL_PORT, 9600, timeout=1)
 	db_conn = sqlite3.connect(DATABASE_FILE)
+	setup_database(db_conn)
 
 	try:
 		while True:
