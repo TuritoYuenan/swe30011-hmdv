@@ -70,7 +70,6 @@ def load(data: tuple, db_conn: sqlite3.Connection, table_name: str) -> None:
 	cursor.execute(query, data)
 
 	db_conn.commit()
-	db_conn.close()
 
 
 def main():
@@ -78,14 +77,17 @@ def main():
 	arduino = Serial(SERIAL_PORT, 9600, timeout=1)
 	db_conn = sqlite3.connect(DATABASE_FILE)
 
-	while True:
-		if DEBUG_MODE: logging.info('1. Extracting message')
-		extracted = extract(arduino)
+	try:
+		while True:
+			if DEBUG_MODE: logging.info('1. Extracting message')
+			extracted = extract(arduino)
 
-		if not extracted: continue
+			if not extracted: continue
 
-		if DEBUG_MODE: logging.info('2. Transforming to tuple')
-		transformed = transform(extracted)
+			if DEBUG_MODE: logging.info('2. Transforming to tuple')
+			transformed = transform(extracted)
 
-		if DEBUG_MODE: logging.info('3. Loading to SQLite database')
-		load(transformed, db_conn, DATABASE_TABLE)
+			if DEBUG_MODE: logging.info('3. Loading to SQLite database')
+			load(transformed, db_conn, DATABASE_TABLE)
+	finally:
+		db_conn.close()
