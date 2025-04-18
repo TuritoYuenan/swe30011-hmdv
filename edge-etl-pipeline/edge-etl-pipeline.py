@@ -74,6 +74,8 @@ def load(data: tuple, db_conn: sqlite3.Connection, table_name: str) -> None:
 
 def main():
 	"""Main ETL pipeline procedure."""
+	if DEBUG_MODE: logging.info('Starting ETL pipeline')
+
 	arduino = Serial(SERIAL_PORT, 9600, timeout=1)
 	db_conn = sqlite3.connect(DATABASE_FILE)
 	setup_database(db_conn)
@@ -92,3 +94,5 @@ def main():
 			load(transformed, db_conn, DATABASE_TABLE)
 	finally:
 		db_conn.close()
+
+if __name__ == "__main__": main()
