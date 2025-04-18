@@ -10,13 +10,12 @@ DATABASE_TABLE = 'weather'
 SERIAL_PORT = '/dev/ttyACM0'
 
 
-def setup_database():
+def setup_database(db_conn: sqlite3.Connection):
 	"""Setup the SQLite database and create the table if not exist."""
-	conn = sqlite3.connect(DATABASE_FILE)
-	cursor = conn.cursor()
+	cursor = db_conn.cursor()
 
-	cursor.execute('''
-	CREATE TABLE IF NOT EXISTS weather (
+	cursor.execute(f'''
+	CREATE TABLE IF NOT EXISTS {DATABASE_TABLE} (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		LPG REAL,
 		CH4 REAL,
@@ -25,8 +24,7 @@ def setup_database():
 	)
 	''')
 
-	conn.commit()
-	conn.close()
+	db_conn.commit()
 
 
 def extract(arduino: Serial) -> str | None:
