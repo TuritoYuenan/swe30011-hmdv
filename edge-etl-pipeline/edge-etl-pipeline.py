@@ -27,6 +27,21 @@ def setup_database(db_conn: sqlite3.Connection):
 	db_conn.commit()
 
 
+def generate() -> str:
+	"""Generate mock data for testing."""
+	import random
+	import time
+
+	time.sleep(1)  # Simulate interval between readings
+
+	LPG = random.uniform(0, 100)
+	CH4 = random.uniform(0, 100)
+	CO = random.uniform(0, 100)
+	Temperature = random.uniform(0, 100)
+
+	return f'LPG:{LPG},CH4:{CH4},CO:{CO},Temperature:{Temperature}'
+
+
 def extract(arduino: Serial) -> str | None:
 	"""Extract data from the Arduino serial port."""
 	if arduino.in_waiting > 0:
