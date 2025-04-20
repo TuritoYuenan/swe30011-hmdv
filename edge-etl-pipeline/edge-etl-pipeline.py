@@ -5,7 +5,7 @@ import logging
 import sqlite3
 
 DEBUG_MODE = True
-DATABASE_FILE = 'edge_database.db'
+DATABASE_FILE = 'edge-database/sqlite.db'
 DATABASE_TABLE = 'readings'
 SERIAL_PORT = '/dev/ttyUSB0'
 
@@ -32,7 +32,7 @@ def generate() -> str:
 	import random
 	import time
 
-	time.sleep(1)  # Simulate interval between readings
+	time.sleep(4)
 
 	LPG = random.uniform(0, 100)
 	CH4 = random.uniform(0, 100)

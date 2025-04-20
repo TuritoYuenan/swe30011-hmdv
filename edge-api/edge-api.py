@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from typing import List, Optional
 import sqlite3
 
-DATABASE_FILE = 'edge_database.db'
+DATABASE_FILE = 'edge-database/sqlite.db'
 DATABASE_TABLE = 'readings'
 
 

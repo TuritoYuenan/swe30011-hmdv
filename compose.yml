@@ -5,14 +5,14 @@ services:
     build: edge-etl-pipeline
     container_name: hmdv-etl-pipeline
     volumes:
-      - ./edge_database.db:/app/edge_database.db:rw
+      - ./edge-database:/app/edge-database
   api:
     build: edge-api
     container_name: hmdv-api
     ports:
       - 8000:8000
     volumes:
-      - ./edge_database.db:/app/edge_database.db:rw
+      - ./edge-database:/app/edge-database
     depends_on:
       - etl-pipeline
   webapp:
