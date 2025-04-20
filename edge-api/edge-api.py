@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from typing import List, Optional
+import asyncio
 import sqlite3
 
 DATABASE_FILE = 'edge-database/sqlite.db'
@@ -60,27 +61,25 @@ def get_readings():
 	entries = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 10')
 
 	return [
-		{
-			'lpg': row[1],
-			'ch4': row[2],
-			'co': row[3],
-			'temp': row[4]
-		}
+		{ 'lpg': row[1], 'ch4': row[2], 'co': row[3], 'temp': row[4] }
 		for row in entries
 	]
 
 
-@app.get("/readings/latest")
-def get_latest_reading():
+@app.websocket("/readings/latest")
+async def get_latest_reading(websocket: WebSocket):
 	"""Get the latest sensor readings"""
+	await websocket.accept()
 	db_conn = DatabaseConnection()
-	entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
 
-	if not entry: return {"error": "No readings found"}
+	while True:
+		entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
 
-	return {
-		'lpg': entry[1],
-		'ch4': entry[2],
-		'co': entry[3],
-		'temp': entry[4]
-	}
+		if entry: await websocket.send_json({
+			'lpg': entry[1], 'ch4': entry[2], 'co': entry[3], 'temp': entry[4]
+		})
+		else: await websocket.send_json({
+			'lpg': None, 'ch4': None, 'co': None, 'temp': None
+		})
+
+		await asyncio.sleep(4)
