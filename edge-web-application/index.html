@@ -10,7 +10,38 @@
 </head>
 
 <body>
-	<h1 x-data="{ message: 'I ❤️ Alpine' }" x-text="message"></h1>
+	<!-- <h1 x-data="{ message: 'I ❤️ Alpine' }" x-text="message"></h1> -->
+	<h1>Hazardous MDV</h1>
+
+	<p x-data="{ readings: $store.sensorData.readings }" x-text="readings.LPG"></p>
+
+	<li x-data>
+		<ul x-text="$store.sensorData.readings.LPG"></ul>
+		<ul x-text="$store.sensorData.readings.CH4"></ul>
+		<ul x-text="$store.sensorData.readings.CO"></ul>
+		<ul x-text="$store.sensorData.readings.Temp"></ul>
+	</li>
+
+	<script>
+		const socket = new WebSocket('ws://localhost:8000/readings/latest');
+
+		document.addEventListener('alpine:init', () => {
+			Alpine.store('sensorData', {
+				readings: { LPG: 0, CO: 0, CH4: 0, Temp: 0 },
+				setReading(newReadings) {
+					this.readings = newReadings;
+				}
+			});
+		});
+
+		socket.addEventListener('open', () => { console.info('Established WS Conn.'); });
+		socket.addEventListener('close', () => { console.info('Closed WS Conn.'); });
+		socket.addEventListener('error', (error) => { console.error('WS error:', error); });
+		socket.addEventListener('message', (event) => {
+			const data = JSON.parse(event.data);
+			Alpine.store('sensorData').setReading(data);
+		});
+	</script>
 </body>
 
 </html>
