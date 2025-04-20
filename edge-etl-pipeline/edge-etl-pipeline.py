@@ -7,7 +7,7 @@ import sqlite3
 DEBUG_MODE = True
 DATABASE_FILE = 'edge_database.db'
 DATABASE_TABLE = 'readings'
-SERIAL_PORT = '/dev/ttyACM0'
+SERIAL_PORT = '/dev/ttyUSB0'
 
 
 def setup_database(db_conn: sqlite3.Connection):
@@ -76,14 +76,15 @@ def main():
 	"""Main ETL pipeline procedure."""
 	if DEBUG_MODE: logging.info('Starting ETL pipeline')
 
-	arduino = Serial(SERIAL_PORT, 9600, timeout=1)
+	# arduino = Serial(SERIAL_PORT, 9600, timeout=1)
 	db_conn = sqlite3.connect(DATABASE_FILE)
 	setup_database(db_conn)
 
 	try:
 		while True:
 			if DEBUG_MODE: logging.info('1. Extracting message')
-			extracted = extract(arduino)
+			extracted = generate()
+			# extracted = extract(arduino)
 
 			if not extracted: continue
 
