@@ -3,11 +3,12 @@
 from serial import Serial
 import logging
 import sqlite3
+import time
 
 DEBUG_MODE = True
 DATABASE_FILE = 'edge-database/sqlite.db'
 DATABASE_TABLE = 'readings'
-SERIAL_PORT = '/dev/ttyUSB0'
+SERIAL_PORT = 'COM11'
 
 
 def setup_database(db_conn: sqlite3.Connection):
@@ -42,12 +43,10 @@ def generate() -> str:
 	return f'LPG:{LPG},CH4:{CH4},CO:{CO},Temperature:{Temperature}'
 
 
-def extract(arduino: Serial) -> str | None:
+def extract(arduino: Serial) -> str:
 	"""Extract data from the Arduino serial port."""
-	if arduino.in_waiting > 0:
-		line = arduino.readline().decode('utf-8').strip()
-		return line
-	return None
+	line = arduino.readline()
+	return line.decode('utf-8').strip()
 
 
 def transform(line: str) -> tuple:
@@ -74,26 +73,33 @@ def load(data: tuple, db_conn: sqlite3.Connection, table_name: str) -> None:
 
 def main():
 	"""Main ETL pipeline procedure."""
+	logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 	if DEBUG_MODE: logging.info('Starting ETL pipeline')
 
-	# arduino = Serial(SERIAL_PORT, 9600, timeout=1)
+	arduino = Serial(SERIAL_PORT, 9600, timeout=1)
 	db_conn = sqlite3.connect(DATABASE_FILE)
 	setup_database(db_conn)
 
 	try:
 		while True:
-			if DEBUG_MODE: logging.info('1. Extracting message')
-			extracted = generate()
-			# extracted = extract(arduino)
+			while arduino.in_waiting == 0: time.sleep(1)
 
-			if not extracted: continue
+			# extracted = generate()
+			extracted = extract(arduino)
+			if DEBUG_MODE: logging.info('1. Extracted: %s', extracted)
 
-			if DEBUG_MODE: logging.info('2. Transforming to tuple')
 			transformed = transform(extracted)
+			if DEBUG_MODE: logging.info('2. Transformed to tuple')
 
-			if DEBUG_MODE: logging.info('3. Loading to SQLite database')
 			load(transformed, db_conn, DATABASE_TABLE)
+			if DEBUG_MODE: logging.info('3. Loaded to SQLite')
+
+			time.sleep(2)
+	except KeyboardInterrupt:
+		if DEBUG_MODE: logging.warning('ETL pipeline manually stopped')
 	finally:
+		if DEBUG_MODE: logging.info('Closing database connection')
 		db_conn.close()
+		arduino.close()
 
 if __name__ == "__main__": main()
