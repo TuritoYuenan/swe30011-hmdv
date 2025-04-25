@@ -1,4 +1,4 @@
-# Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
+## Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
 
 from serial import Serial
 import logging

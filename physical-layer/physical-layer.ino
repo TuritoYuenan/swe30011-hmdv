@@ -1,3 +1,5 @@
+// Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
+
 #define ACT_BZR 5
 #define ACT_LED 6
 #define ACT_FAN 12
