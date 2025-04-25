@@ -15,6 +15,11 @@ services:
       - ./edge-database:/app/edge-database
     depends_on:
       - etl-pipeline
+  monitoring:
+    build: edge-monitoring
+    container_name: hmdv-monitoring
+    depends_on:
+      - etl-pipeline
   webapp:
     build: edge-web-application
     container_name: hmdv-web-application

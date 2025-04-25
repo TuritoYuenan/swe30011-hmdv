@@ -47,6 +47,12 @@ void loop() {
 void routine() {
   readSensors();
   sendReadings();
+
+  if (Serial.available() > 0) {
+    int value = Serial.read();
+    if (value == '2') engageResponseSystem();
+    else if (value == '0') disengageResponseSystem();
+  }
 }
 
 void readSensors() {
@@ -74,6 +80,12 @@ void engageResponseSystem() {
   digitalWrite(ACT_BZR, LOW);
   digitalWrite(ACT_LED, HIGH);
   digitalWrite(ACT_FAN, HIGH);
+}
+
+void disengageResponseSystem() {
+  digitalWrite(ACT_BZR, HIGH);
+  digitalWrite(ACT_LED, LOW);
+  digitalWrite(ACT_FAN, LOW);
 }
 
 float readTemperature() {
