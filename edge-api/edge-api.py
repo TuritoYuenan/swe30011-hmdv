@@ -73,15 +73,15 @@ async def get_latest_reading(websocket: WebSocket):
 	"""Get the latest sensor readings"""
 	await websocket.accept()
 	db_conn = DatabaseConnection()
+	last_entry_id = None
 
 	while True:
-		entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
+		entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')
 
-		if entry: await websocket.send_json({
-			'lpg': entry[1], 'ch4': entry[2], 'co': entry[3], 'temp': entry[4]
-		})
-		else: await websocket.send_json({
-			'lpg': None, 'ch4': None, 'co': None, 'temp': None
-		})
+		if entry and entry[0][0] != last_entry_id:
+			last_entry_id = entry[0][0]
+			await websocket.send_json({
+				'lpg': entry[0][1], 'ch4': entry[0][2], 'co': entry[0][3], 'temp': entry[0][4]
+			})
 
-		await asyncio.sleep(4)
+		await asyncio.sleep(3)
