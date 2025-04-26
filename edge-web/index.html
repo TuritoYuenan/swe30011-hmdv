@@ -20,30 +20,30 @@
 	</section>
 
 	<main class="section">
-		<h2 class="title is-3">Current readings</h2>
+		<h2 class="title is-3">Live readings</h2>
 
 		<section class="columns my-5">
 			<div class="column">
 				<h2 class="subtitle is-4">LPG</h2>
-				<p class="title is-2">400<small> ppm</small></p>
-			</div>
-			<div class="column">
-				<h2 class="subtitle is-4">CO gas</h2>
-				<p class="title is-2">400<small> ppm</small></p>
+				<p id="live-lpg" class="title is-2">NaN</p>
 			</div>
 			<div class="column">
 				<h2 class="subtitle is-4">CH4 gas</h2>
-				<p class="title is-2">400<small> ppm</small></p>
+				<p id="live-ch4" class="title is-2">NaN</p>
+			</div>
+			<div class="column">
+				<h2 class="subtitle is-4">CO gas</h2>
+				<p id="live-co" class="title is-2">NaN</p>
 			</div>
 			<div class="column">
 				<h2 class="subtitle is-4">Air temperature</h2>
-				<p class="title is-2">26<small>&deg;C</small></p>
+				<p id="live-temp" class="title is-2">NaN</p>
 			</div>
 		</section>
 
 		<h2 class="title is-3">Recent trends</h2>
 
-		<section class="my-5 p-5 has-background-white">
+		<section class="my-5 p-5 container is-max-tablet has-background-white">
 			<canvas id="trend-chart"></canvas>
 		</section>
 
@@ -89,16 +89,17 @@
 		</div>
 	</footer>
 
-	<script src="https://unpkg.com/petite-vue" defer init></script>
 	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 	<script>
+		const entries = { timestamps: [], lpg: [], ch4: [], co: [], temp: [], }
+
 		const data = {
-			labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+			labels: entries.timestamps,
 			datasets: [
-				{ label: 'LPG', data: [0, 10, 5, 2, 20, 30, 45] },
-				{ label: 'Methane', data: [0, 20, 10, 5, 30, 40, 50] },
-				{ label: 'CO', data: [0, 30, 15, 10, 40, 50, 60] },
-				{ label: 'Temperature', data: [0, 5, 2, 1, 10, 15, 20], yAxisID: 'y-axis-2' }
+				{ label: 'LPG', data: entries.lpg },
+				{ label: 'Methane', data: entries.ch4 },
+				{ label: 'CO', data: entries.co },
+				{ label: 'Temperature', data: entries.temp, yAxisID: 'y-axis-2' }
 			]
 		};
 
@@ -108,7 +109,7 @@
 				plugins: {
 					legend: { position: 'bottom' },
 					title: { display: true, text: 'Gas concentration and temperature trends' },
-					subtitle: { display: true, text: '2025-04-26, in ppm and °C' },
+					subtitle: { display: true, text: '2025-04-26' },
 				},
 				scales: {
 					y: {
@@ -129,6 +130,60 @@
 		};
 
 		const trendChart = new Chart(document.getElementById('trend-chart'), config);
+
+		function updateLiveReading(id, array, unit) {
+			const element = document.getElementById(id);
+			element.innerText = `${array[array.length - 1]} ${unit}`;
+		}
+
+		function updateLiveReadings() {
+			updateLiveReading('live-lpg', entries.lpg, 'ppm');
+			updateLiveReading('live-ch4', entries.ch4, 'ppm');
+			updateLiveReading('live-co', entries.co, 'ppm');
+			updateLiveReading('live-temp', entries.temp, '°C');
+		}
+
+		async function fetchReadings() {
+			const response = await fetch('http://localhost:8000/readings/stream');
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder('utf-8');
+
+			while (true) {
+				const { value, done } = await reader.read();
+				if (done) break;
+
+				const chunk = decoder.decode(value, { stream: true });
+				const readings = chunk.trim().split('\n');
+
+				readings.forEach((reading) => {
+					const data = JSON.parse(reading.replace(/'/g, '"'));
+
+					// Update data arrays
+					entries.timestamps.push(new Date().toLocaleTimeString());
+					entries.lpg.push(data.lpg);
+					entries.ch4.push(data.ch4);
+					entries.co.push(data.co);
+					entries.temp.push(data.temp);
+
+					// Limit number of data points
+					if (entries.timestamps.length > 10) {
+						entries.timestamps.shift();
+						entries.lpg.shift();
+						entries.ch4.shift();
+						entries.co.shift();
+						entries.temp.shift();
+					}
+
+					// Update live readings and chart
+					updateLiveReadings();
+					trendChart.update();
+				});
+			}
+		}
+
+		fetchReadings().catch((error) => {
+			console.error('Error fetching readings:', error);
+		});
 	</script>
 </body>
 
