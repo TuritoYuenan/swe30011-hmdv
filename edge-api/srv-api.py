@@ -1,7 +1,8 @@
 ## Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
 
-from fastapi import FastAPI, WebSocket
-from typing import List, Optional
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from typing import AsyncGenerator, List, Optional
 import asyncio
 import sqlite3
 
@@ -67,21 +68,30 @@ def get_readings():
 		for row in entries
 	]
 
-
-@app.websocket("/readings/latest")
-async def get_latest_reading(websocket: WebSocket):
-	"""Get the latest sensor readings"""
-	await websocket.accept()
+async def stream_latest_readings() -> AsyncGenerator[dict, None]:
+	"""Stream the latest sensor readings."""
 	db_conn = DatabaseConnection()
-	last_entry_id = None
-
 	while True:
-		entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')
+		entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
+		if entry:
+			yield {
+				"lpg": entry[1],
+				"ch4": entry[2],
+				"co": entry[3],
+				"temp": entry[4]
+			}
+		await asyncio.sleep(4)
 
-		if entry and entry[0][0] != last_entry_id:
-			last_entry_id = entry[0][0]
-			await websocket.send_json({
-				'lpg': entry[0][1], 'ch4': entry[0][2], 'co': entry[0][3], 'temp': entry[0][4]
-			})
 
-		await asyncio.sleep(3)
+@app.get("/readings/stream")
+async def get_latest_readings():
+	"""Stream the latest sensor readings as a response."""
+	async def generator():
+		async for reading in stream_latest_readings():
+			yield f"{reading}\n\n"
+
+	return StreamingResponse(
+		generator(),
+		media_type="text/event-stream",
+		headers={"Access-Control-Allow-Origin": "*"}
+	)
