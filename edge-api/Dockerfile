@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD [ "fastapi", "run", "./edge-api.py" ]
+CMD [ "fastapi", "run", "./srv-api.py" ]

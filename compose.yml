@@ -1,28 +1,28 @@
-name: hazardous-mdv-edge
+name: hmdv-edge-server
 
 services:
-  etl-pipeline:
-    build: edge-etl-pipeline
-    container_name: hmdv-etl-pipeline
+  etl:
+    build: edge-etl
+    container_name: hmdv-srv-etl
     volumes:
       - ./edge-database:/app/edge-database
   api:
     build: edge-api
-    container_name: hmdv-api
-    ports:
-      - 8000:8000
+    container_name: hmdv-srv-api
     volumes:
       - ./edge-database:/app/edge-database
+    ports:
+      - 8000:8000
     depends_on:
-      - etl-pipeline
-  monitoring:
-    build: edge-monitoring
-    container_name: hmdv-monitoring
+      - etl
+  mon:
+    build: edge-mon
+    container_name: hmdv-srv-mon
     depends_on:
-      - etl-pipeline
-  webapp:
-    build: edge-web-application
-    container_name: hmdv-web-application
+      - etl
+  web:
+    build: edge-web
+    container_name: hmdv-srv-web
     ports:
       - 80:80
     depends_on:

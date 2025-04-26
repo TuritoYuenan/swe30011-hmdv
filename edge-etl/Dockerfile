@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD [ "python", "./edge-monitoring.py" ]
+CMD [ "python", "./srv-etl.py" ]
