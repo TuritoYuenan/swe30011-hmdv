@@ -6,41 +6,129 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Hazardous MDV</title>
 
-	<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+	<link rel="shortcut icon" href="data:image/png;base64," type="image/x-icon">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
 </head>
 
 <body>
-	<!-- <h1 x-data="{ message: 'I ❤️ Alpine' }" x-text="message"></h1> -->
-	<h1>Hazardous MDV</h1>
+	<section class="hero is-link">
+		<header class="hero-body">
+			<h1 class="title is-1">Hazardous MDV</h1>
+			<p class="subtitle is-3">IoT-based system for hazardous gas leakages monitoring, detection and ventilation
+			</p>
+		</header>
+	</section>
 
-	<p x-data="{ readings: $store.sensorData.readings }" x-text="readings.LPG"></p>
+	<main class="section">
+		<h2 class="title is-3">Current readings</h2>
 
-	<li x-data>
-		<ul x-text="$store.sensorData.readings.LPG"></ul>
-		<ul x-text="$store.sensorData.readings.CH4"></ul>
-		<ul x-text="$store.sensorData.readings.CO"></ul>
-		<ul x-text="$store.sensorData.readings.Temp"></ul>
-	</li>
+		<section class="columns my-5">
+			<div class="column">
+				<h2 class="subtitle is-4">LPG</h2>
+				<p class="title is-2">400<small> ppm</small></p>
+			</div>
+			<div class="column">
+				<h2 class="subtitle is-4">CO gas</h2>
+				<p class="title is-2">400<small> ppm</small></p>
+			</div>
+			<div class="column">
+				<h2 class="subtitle is-4">CH4 gas</h2>
+				<p class="title is-2">400<small> ppm</small></p>
+			</div>
+			<div class="column">
+				<h2 class="subtitle is-4">Air temperature</h2>
+				<p class="title is-2">26<small>&deg;C</small></p>
+			</div>
+		</section>
 
+		<h2 class="title is-3">Recent trends</h2>
+
+		<section class="my-5 p-5 has-background-white">
+			<canvas id="trend-chart"></canvas>
+		</section>
+
+		<h2 class="title is-3">Safe limits configuration</h2>
+
+		<section class="my-4">
+			<div class="columns">
+				<div class="column">
+					<div>
+						<label class="label" for="lpg-limit">LPG Limit (ppm)</label>
+						<input class="input" type="number" id="lpg-limit" placeholder="e.g. 400">
+					</div>
+				</div>
+				<div class="column">
+					<div>
+						<label class="label" for="co-limit">CO Limit (ppm)</label>
+						<input class="input" type="number" id="co-limit" placeholder="e.g. 400">
+					</div>
+				</div>
+				<div class="column">
+					<div>
+						<label class="label" for="methane-limit">Methane Limit (ppm)</label>
+						<input class="input" type="number" id="methane-limit" placeholder="e.g. 400">
+					</div>
+				</div>
+				<div class="column">
+					<div>
+						<label class="label" for="temperature-limit">Temperature Limit (°C)</label>
+						<input class="input" type="number" id="temperature-limit" placeholder="e.g. 42">
+					</div>
+				</div>
+			</div>
+
+			<div class="has-text-centered">
+				<button class="button is-medium is-primary">Update limits</button>
+			</div>
+		</section>
+	</main>
+
+	<footer class="footer">
+		<div class="content">
+			<p><strong>Hazardous MDV</strong> by student Minh-Triet Nguyen-Ta</p>
+		</div>
+	</footer>
+
+	<script src="https://unpkg.com/petite-vue" defer init></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 	<script>
-		const socket = new WebSocket('ws://localhost:8000/readings/latest');
+		const data = {
+			labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+			datasets: [
+				{ label: 'LPG', data: [0, 10, 5, 2, 20, 30, 45] },
+				{ label: 'Methane', data: [0, 20, 10, 5, 30, 40, 50] },
+				{ label: 'CO', data: [0, 30, 15, 10, 40, 50, 60] },
+				{ label: 'Temperature', data: [0, 5, 2, 1, 10, 15, 20], yAxisID: 'y-axis-2' }
+			]
+		};
 
-		document.addEventListener('alpine:init', () => {
-			Alpine.store('sensorData', {
-				readings: { LPG: 0, CO: 0, CH4: 0, Temp: 0 },
-				setReading(newReadings) {
-					this.readings = newReadings;
+		const config = {
+			type: 'line', data, options: {
+				responsive: true,
+				plugins: {
+					legend: { position: 'bottom' },
+					title: { display: true, text: 'Gas concentration and temperature trends' },
+					subtitle: { display: true, text: '2025-04-26, in ppm and °C' },
+				},
+				scales: {
+					y: {
+						type: 'linear',
+						display: true,
+						position: 'left',
+						title: { display: true, text: 'Gas concentration (ppm)' }
+					},
+					'y-axis-2': {
+						type: 'linear',
+						display: true,
+						position: 'right',
+						title: { display: true, text: 'Temperature (°C)' },
+						grid: { drawOnChartArea: false }
+					}
 				}
-			});
-		});
+			}
+		};
 
-		socket.addEventListener('open', () => { console.info('Established WS Conn.'); });
-		socket.addEventListener('close', () => { console.info('Closed WS Conn.'); });
-		socket.addEventListener('error', (error) => { console.error('WS error:', error); });
-		socket.addEventListener('message', (event) => {
-			const data = JSON.parse(event.data);
-			Alpine.store('sensorData').setReading(data);
-		});
+		const trendChart = new Chart(document.getElementById('trend-chart'), config);
 	</script>
 </body>
 
