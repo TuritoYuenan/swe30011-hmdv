@@ -35,10 +35,10 @@ def generate() -> str:
 
 	time.sleep(4)
 
-	LPG = random.uniform(0, 100)
-	CH4 = random.uniform(0, 100)
-	CO = random.uniform(0, 100)
-	Temperature = random.uniform(0, 100)
+	LPG = random.randint(0, 100)
+	CH4 = random.randint(0, 100)
+	CO = random.randint(0, 100)
+	Temperature = round(random.uniform(20, 60), 2)
 
 	return f'LPG:{LPG},CH4:{CH4},CO:{CO},Temperature:{Temperature}'
 
