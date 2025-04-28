@@ -43,7 +43,7 @@
 
 		<h2 class="title is-3">Recent trends</h2>
 
-		<section class="my-5 p-5 container is-max-tablet has-background-white">
+		<section class="my-5 p-2 container is-max-tablet has-background-white">
 			<canvas id="trend-chart"></canvas>
 		</section>
 
@@ -107,15 +107,12 @@
 			type: 'line', data, options: {
 				responsive: true,
 				plugins: {
-					legend: { position: 'bottom' },
-					title: { display: true, text: 'Gas concentration and temperature trends' },
-					subtitle: { display: true, text: '2025-04-26' },
+					title: { display: true, text: 'Gas concentration and temperature trends - 2025-04-26' },
 				},
 				scales: {
 					y: {
 						type: 'linear',
 						display: true,
-						position: 'left',
 						title: { display: true, text: 'Gas concentration (ppm)' }
 					},
 					'y-axis-2': {

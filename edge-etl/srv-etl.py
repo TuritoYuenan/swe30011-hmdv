@@ -5,10 +5,10 @@ import logging
 import sqlite3
 import time
 
-DEBUG_MODE = True
+DEBUG_MODE = True # Frankly this should stay on even in production
 DATABASE_FILE = 'edge-database/sqlite.db'
 DATABASE_TABLE = 'readings'
-SERIAL_PORT = 'COM11'
+SERIAL_PORT = 'COM11' # Linux: /dev/tty{USB,ACM}#, Windows: COM#
 
 
 def setup_database(db_conn: sqlite3.Connection):
@@ -35,12 +35,12 @@ def generate() -> str:
 
 	time.sleep(4)
 
-	LPG = random.randint(0, 100)
-	CH4 = random.randint(0, 100)
-	CO = random.randint(0, 100)
-	Temperature = round(random.uniform(20, 60), 2)
+	lpg = random.randint(0, 100)
+	ch4 = random.randint(0, 100)
+	co = random.randint(0, 100)
+	temp = round(random.uniform(20, 60), 2)
 
-	return f'LPG:{LPG},CH4:{CH4},CO:{CO},Temperature:{Temperature}'
+	return f'LPG:{lpg},CH4:{ch4},CO:{co},Temperature:{temp}'
 
 
 def extract(arduino: Serial) -> str:
@@ -60,12 +60,12 @@ def transform(line: str) -> tuple:
 	return tuple(data.values())
 
 
-def load(data: tuple, db_conn: sqlite3.Connection, table_name: str) -> None:
+def load(data: tuple, db_conn: sqlite3.Connection, table: str) -> None:
 	"""Load transformed data into the SQLite database."""
-	cursor = db_conn.cursor()
 	placeholders = ', '.join(['?'] * len(data))
+	query = f"INSERT INTO {table} (LPG, CH4, CO, Temperature) VALUES ({placeholders})"
 
-	query = f"INSERT INTO {table_name} (LPG, CH4, CO, Temperature) VALUES ({placeholders})"
+	cursor = db_conn.cursor()
 	cursor.execute(query, data)
 
 	db_conn.commit()

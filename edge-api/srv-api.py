@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from typing import AsyncGenerator, List, Optional
+from typing import AsyncGenerator, List
 import asyncio
 import sqlite3
 
@@ -12,13 +12,13 @@ DATABASE_TABLE = 'readings'
 
 class DatabaseConnection:
 	"""Singleton class to manage connection to SQLite database."""
-	_instance: Optional['DatabaseConnection'] = None
-	_connection: Optional[sqlite3.Connection] = None
+	_instance: 'DatabaseConnection' | None = None
+	_connection: sqlite3.Connection | None = None
 
 	def __new__(cls, *args, **kwargs) -> 'DatabaseConnection':
 		if not cls._instance:
 			cls._instance = super(DatabaseConnection, cls).__new__(cls, *args, **kwargs)
-			cls._connection = sqlite3.connect(DATABASE_FILE, check_same_thread=False)
+			cls._connection = sqlite3.connect(DATABASE_FILE)
 		return cls._instance
 
 	def query(self, query: str, params: tuple = ()) -> List[tuple]:
@@ -43,47 +43,21 @@ app = FastAPI(
 	redoc_url="/redoc",
 )
 
-
-@app.get("/")
-def read_root():
-	return {
-		"message": "Welcome to the Edge Device API",
-		"endpoints": {
-			"readings": "/readings",
-			"latest_reading": "/readings/latest",
-			"docs": "/docs",
-			"redoc": "/redoc"
-		}
-	}
-
-
-@app.get("/readings")
-def get_readings():
-	"""Get 10 latest sensor readings"""
-	db_conn = DatabaseConnection()
-	entries = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 10')
-
-	return [
-		{ 'lpg': row[1], 'ch4': row[2], 'co': row[3], 'temp': row[4] }
-		for row in entries
-	]
-
 async def stream_latest_readings() -> AsyncGenerator[dict, None]:
 	"""Stream the latest sensor readings."""
 	db_conn = DatabaseConnection()
 	while True:
 		entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
-		if entry:
-			yield {
-				"lpg": entry[1],
-				"ch4": entry[2],
-				"co": entry[3],
-				"temp": entry[4]
-			}
+		if entry: yield {
+			"lpg": entry[1],
+			"ch4": entry[2],
+			"co": entry[3],
+			"temp": entry[4]
+		}
 		await asyncio.sleep(4)
 
 
-@app.get("/readings/stream")
+@app.get("/readings")
 async def get_latest_readings():
 	"""Stream the latest sensor readings as a response."""
 	async def generator():
