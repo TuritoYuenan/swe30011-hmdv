@@ -5,9 +5,13 @@ from fastapi.responses import StreamingResponse
 from typing import AsyncGenerator, List
 import asyncio
 import sqlite3
+import serial
 
 DATABASE_FILE = 'edge-database/sqlite.db'
 DATABASE_TABLE = 'readings'
+ARDUINO_PORT = 'COM7' # Linux: /dev/tty{USB,ACM}#, Windows: COM#
+
+arduino = serial.Serial(ARDUINO_PORT, 9600, timeout=1)
 
 
 class DatabaseConnection:
@@ -69,3 +73,17 @@ async def get_latest_readings():
 		media_type="text/event-stream",
 		headers={"Access-Control-Allow-Origin": "*"}
 	)
+
+@app.get("/response_system/{command}")
+def toggle_response_system(command: str):
+	"""Toggle the response system based on the command."""
+	encodeCommand = {
+		"engage": b"2",
+		"disengage": b"0"
+	}
+
+	if command not in encodeCommand: return { "status": "invalid" }
+
+	arduino.write(encodeCommand[command])
+
+	return { "status": "engaged" if command == "engage" else "disengaged" }
