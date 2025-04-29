@@ -148,7 +148,7 @@
 		}
 
 		async function fetchReadings() {
-			const response = await fetch('http://localhost:8000/readings/stream');
+			const response = await fetch('http://localhost:8000/readings');
 			const reader = response.body.getReader();
 			const decoder = new TextDecoder('utf-8');
 

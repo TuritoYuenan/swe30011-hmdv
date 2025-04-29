@@ -2,22 +2,22 @@
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator, List, Optional
 import asyncio
 import sqlite3
 import serial
 
 DATABASE_FILE = 'edge-database/sqlite.db'
 DATABASE_TABLE = 'readings'
-ARDUINO_PORT = 'COM7' # Linux: /dev/tty{USB,ACM}#, Windows: COM#
+ARDUINO_PORT = 'COM8' # Linux: /dev/tty{USB,ACM}#, Windows: COM#
 
 arduino = serial.Serial(ARDUINO_PORT, 9600, timeout=1)
 
 
 class DatabaseConnection:
 	"""Singleton class to manage connection to SQLite database."""
-	_instance: 'DatabaseConnection' | None = None
-	_connection: sqlite3.Connection | None = None
+	_instance: Optional['DatabaseConnection'] = None
+	_connection: Optional[sqlite3.Connection] = None
 
 	def __new__(cls, *args, **kwargs) -> 'DatabaseConnection':
 		if not cls._instance:
@@ -47,32 +47,49 @@ app = FastAPI(
 	redoc_url="/redoc",
 )
 
-async def stream_latest_readings() -> AsyncGenerator[dict, None]:
-	"""Stream the latest sensor readings."""
-	db_conn = DatabaseConnection()
-	while True:
-		entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
-		if entry: yield {
-			"lpg": entry[1],
-			"ch4": entry[2],
-			"co": entry[3],
-			"temp": entry[4]
-		}
-		await asyncio.sleep(4)
-
 
 @app.get("/readings")
-async def get_latest_readings():
-	"""Stream the latest sensor readings as a response."""
+async def stream_latest_readings():
+	"""Stream the latest sensor readings from database."""
+	db_conn = DatabaseConnection()
+
 	async def generator():
-		async for reading in stream_latest_readings():
-			yield f"{reading}\n\n"
+		while True:
+			entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
+			if entry:
+				data = {
+					"lpg": entry[1],
+					"ch4": entry[2],
+					"co": entry[3],
+					"temp": entry[4]
+				}
+				yield f"{data}\n"
+			await asyncio.sleep(4)
+
+	return StreamingResponse(
+		generator(),
+		media_type="application/json",
+		headers={"Access-Control-Allow-Origin": "*"}
+	)
+
+
+@app.get("/serial")
+async def stream_serial_data():
+	"""Stream raw data from the Arduino serial port."""
+	async def generator():
+		while True:
+			while arduino.in_waiting == 0: await asyncio.sleep(0.1)
+
+			line = arduino.readline()
+			yield f"{line.decode('utf-8').strip()}\n"
+			await asyncio.sleep(1)
 
 	return StreamingResponse(
 		generator(),
 		media_type="text/event-stream",
 		headers={"Access-Control-Allow-Origin": "*"}
 	)
+
 
 @app.get("/response_system/{command}")
 def toggle_response_system(command: str):
