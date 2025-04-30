@@ -2,14 +2,16 @@
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from typing import List, Optional
+from typing import Optional
 import asyncio
 import sqlite3
 import serial
+import os
 
-DATABASE_FILE = 'edge-database/sqlite.db'
-DATABASE_TABLE = 'readings'
-ARDUINO_PORT = 'COM8' # Linux: /dev/tty{USB,ACM}#, Windows: COM#
+# Linux: /dev/tty{USB,ACM}#, Windows: COM#
+ARDUINO_PORT = os.getenv("ARDUINO_PORT", 'COM8')
+DATABASE_FILE = os.getenv("DATABASE_FILE", 'edge-database/sqlite.db')
+DATABASE_TABLE = os.getenv("DATABASE_TABLE", 'readings')
 
 arduino = serial.Serial(ARDUINO_PORT, 9600, timeout=1)
 
@@ -31,7 +33,7 @@ class DatabaseConnection:
 		cursor.execute(query, params)
 		self._connection.commit()
 
-	def query(self, query: str, params: tuple = ()) -> List[tuple]:
+	def query(self, query: str, params: tuple = ()):
 		"""Execute a query and return the results."""
 		cursor: sqlite3.Cursor = self._connection.cursor()
 		cursor.execute(query, params)
@@ -122,10 +124,7 @@ async def stream_serial_data():
 @app.get("/response_system/{command}")
 def toggle_response_system(command: str):
 	"""Toggle the response system based on the command."""
-	encodeCommand = {
-		"engage": b"2",
-		"disengage": b"0"
-	}
+	encodeCommand = { "engage": b"2", "disengage": b"0" }
 
 	if command not in encodeCommand: return { "status": "invalid" }
 

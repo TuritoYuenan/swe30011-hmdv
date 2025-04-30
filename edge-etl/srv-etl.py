@@ -1,10 +1,12 @@
 ## Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
 
-import logging
 import asyncio
 import aiohttp
+import logging
+import os
 
-DEBUG_MODE = True
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+DEBUG_MODE = os.getenv("DEBUG_MODE", "False").lower() == "true"
 
 
 def generate() -> str:
@@ -58,8 +60,6 @@ async def main(stream_url: str, post_url: str):
 
 if __name__ == "__main__":
 	try:
-		url_stream = "http://localhost:8000/serial"
-		url_post = "http://localhost:8000/readings"
-		asyncio.run(main(url_stream, url_post))
+		asyncio.run(main(API_URL + "/serial", API_URL + "/readings"))
 	except KeyboardInterrupt:
 		logging.info("* ETL service manually stopped")
