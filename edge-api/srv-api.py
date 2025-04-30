@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from typing import AsyncGenerator, List, Optional
+from typing import List, Optional
 import asyncio
 import sqlite3
 import serial
@@ -25,6 +25,12 @@ class DatabaseConnection:
 			cls._connection = sqlite3.connect(DATABASE_FILE)
 		return cls._instance
 
+	def insert(self, query: str, params: tuple) -> None:
+		"""Insert data into the database."""
+		cursor: sqlite3.Cursor = self._connection.cursor()
+		cursor.execute(query, params)
+		self._connection.commit()
+
 	def query(self, query: str, params: tuple = ()) -> List[tuple]:
 		"""Execute a query and return the results."""
 		cursor: sqlite3.Cursor = self._connection.cursor()
@@ -46,6 +52,28 @@ app = FastAPI(
 	docs_url="/docs",
 	redoc_url="/redoc",
 )
+
+
+@app.post("/readings")
+async def upload_readings(data: dict):
+	"""Upload sensor readings to the database."""
+	db_conn = DatabaseConnection()
+
+	# Extract data from the JSON payload
+	lpg = data.get("LPG")
+	ch4 = data.get("CH4")
+	co = data.get("CO")
+	temp = data.get("Temperature")
+
+	# Validate the data
+	if lpg is None or ch4 is None or co is None or temp is None:
+		return {"status": "error", "message": "Invalid data format"}
+
+	# Insert data into the database
+	query = f"INSERT INTO {DATABASE_TABLE} (LPG, CH4, CO, Temperature) VALUES (?, ?, ?, ?)"
+	db_conn.insert(query, (lpg, ch4, co, temp))
+
+	return {"status": "success", "message": "Data uploaded successfully"}
 
 
 @app.get("/readings")
