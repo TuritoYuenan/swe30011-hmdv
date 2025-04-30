@@ -1,31 +1,10 @@
 ## Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
 
-from serial import Serial
 import logging
-import sqlite3
-import time
+import asyncio
+import aiohttp
 
-DEBUG_MODE = True # Frankly this should stay on even in production
-DATABASE_FILE = 'edge-database/sqlite.db'
-DATABASE_TABLE = 'readings'
-SERIAL_PORT = 'COM11' # Linux: /dev/tty{USB,ACM}#, Windows: COM#
-
-
-def setup_database(db_conn: sqlite3.Connection):
-	"""Setup the SQLite database and create the table if not exist."""
-	cursor = db_conn.cursor()
-
-	cursor.execute(f'''
-	CREATE TABLE IF NOT EXISTS {DATABASE_TABLE} (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		LPG REAL,
-		CH4 REAL,
-		CO REAL,
-		Temperature REAL
-	)
-	''')
-
-	db_conn.commit()
+DEBUG_MODE = True
 
 
 def generate() -> str:
@@ -43,63 +22,44 @@ def generate() -> str:
 	return f'LPG:{lpg},CH4:{ch4},CO:{co},Temperature:{temp}'
 
 
-def extract(arduino: Serial) -> str:
-	"""Extract data from the Arduino serial port."""
-	line = arduino.readline()
-	return line.decode('utf-8').strip()
+async def extract(session: aiohttp.ClientSession, stream_url: str):
+	"""Extract data from the serial stream."""
+	async with session.get(stream_url) as response:
+		async for raw_data in response.content:
+			yield raw_data
 
 
-def transform(line: str) -> tuple:
-	"""Transform serial line into a tuple for SQL."""
-	data = {}
-
-	for item in line.split(','):
-		key, value = item.split(':')
-		data[key.strip()] = float(value.strip())
-
-	return tuple(data.values())
+def transform(raw_data: bytes):
+	"""Transform serial line into JSON/dict."""
+	data_line = raw_data.decode('utf-8').strip()
+	json_data = dict(item.split(":") for item in data_line.split(","))
+	return json_data
 
 
-def load(data: tuple, db_conn: sqlite3.Connection, table: str) -> None:
-	"""Load transformed data into the SQLite database."""
-	placeholders = ', '.join(['?'] * len(data))
-	query = f"INSERT INTO {table} (LPG, CH4, CO, Temperature) VALUES ({placeholders})"
-
-	cursor = db_conn.cursor()
-	cursor.execute(query, data)
-
-	db_conn.commit()
+async def load(session: aiohttp.ClientSession, post_url: str, data: dict):
+	"""Load transformed data into the database via POST endpoint."""
+	async with session.post(post_url, json=data) as response:
+		result = await response.text()
+		return result
 
 
-def main():
+async def main(stream_url: str, post_url: str):
 	"""Main ETL pipeline procedure."""
-	logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-	if DEBUG_MODE: logging.info('Starting ETL pipeline')
+	logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
 
-	arduino = Serial(SERIAL_PORT, 9600, timeout=1)
-	db_conn = sqlite3.connect(DATABASE_FILE)
-	setup_database(db_conn)
-
-	try:
-		while True:
-			while arduino.in_waiting == 0: time.sleep(1)
-
-			# extracted = generate()
-			extracted = extract(arduino)
-			if DEBUG_MODE: logging.info('1. Extracted: %s', extracted)
-
+	async with aiohttp.ClientSession() as session:
+		async for extracted in extract(session, stream_url):
+			if DEBUG_MODE: logging.info('=> Extracted: %s', extracted)
 			transformed = transform(extracted)
-			if DEBUG_MODE: logging.info('2. Transformed to tuple')
+			if DEBUG_MODE: logging.info('==> Transformed: %s', transformed)
+			load_result = await load(session, post_url, transformed)
+			if DEBUG_MODE: logging.info('===> Loaded with response: %s', load_result)
 
-			load(transformed, db_conn, DATABASE_TABLE)
-			if DEBUG_MODE: logging.info('3. Loaded to SQLite')
 
-			time.sleep(2)
+if __name__ == "__main__":
+	try:
+		url_stream = "http://localhost:8000/serial"
+		url_post = "http://localhost:8000/readings"
+		asyncio.run(main(url_stream, url_post))
 	except KeyboardInterrupt:
-		if DEBUG_MODE: logging.warning('ETL pipeline manually stopped')
-	finally:
-		if DEBUG_MODE: logging.info('Closing database connection')
-		db_conn.close()
-		arduino.close()
-
-if __name__ == "__main__": main()
+		logging.info("* ETL service manually stopped")
