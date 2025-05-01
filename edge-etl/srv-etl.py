@@ -6,7 +6,7 @@ import logging
 import os
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
-DEBUG_MODE = os.getenv("DEBUG_MODE", "False").lower() == "true"
+DEBUG_MODE = os.getenv("DEBUG_MODE", "True").lower() == "true"
 
 
 def generate() -> str:
