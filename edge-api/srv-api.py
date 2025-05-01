@@ -124,10 +124,12 @@ async def stream_serial_data():
 @app.get("/response_system/{command}")
 def toggle_response_system(command: str):
 	"""Toggle the response system based on the command."""
-	encodeCommand = { "engage": b"2", "disengage": b"0" }
-
-	if command not in encodeCommand: return { "status": "invalid" }
-
-	arduino.write(encodeCommand[command])
-
-	return { "status": "engaged" if command == "engage" else "disengaged" }
+	match command:
+		case "engage":
+			arduino.write(b"2")
+			return { "status": "engaged" }
+		case "disengage":
+			arduino.write(b"0")
+			return { "status": "disengaged" }
+		case _:
+			return { "status": "invalid" }
