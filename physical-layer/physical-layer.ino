@@ -9,6 +9,7 @@
 #define SEN_MQ4 A1
 #define SEN_MQ7 A2
 
+#include <math.h>
 #include <OneWire.h>
 #include <TimerOne.h>
 
@@ -57,9 +58,9 @@ void routine() {
 
 void readSensors() {
   // Gas sensor readings
-  readings.lpg = analogRead(SEN_MQ2);
-  readings.ch4 = analogRead(SEN_MQ4);
-  readings.co = analogRead(SEN_MQ7);
+  readings.lpg = readGasToPPM(analogRead(SEN_MQ2), -0.47, 1.69);
+  readings.ch4 = readGasToPPM(analogRead(SEN_MQ4), -0.45, 1.85);
+  readings.co = readGasToPPM(analogRead(SEN_MQ7), -0.48, 2.30);
 
   // Temperature sensor readings
   readings.temp = readTemperature();
@@ -86,6 +87,21 @@ void disengageResponseSystem() {
   digitalWrite(ACT_BZR, HIGH);
   digitalWrite(ACT_LED, LOW);
   digitalWrite(ACT_FAN, LOW);
+}
+
+float readGasToPPM(int analogue, float a, float b) {
+  // Avoid divide by 0
+  if (analogue <= 0) return -1;
+
+  const float R_0 = 10.0;
+  const float R_L = 5000.0;
+  const int maxADC = 1023;
+
+  float R_s = R_L * ((float(maxADC) - analogue) / analogue);
+  float logPPM = a * log10(R_s / R_0) + b;
+  float ppm = pow(10, logPPM);
+
+  return ppm;
 }
 
 float readTemperature() {
