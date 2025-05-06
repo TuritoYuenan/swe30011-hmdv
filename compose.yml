@@ -5,7 +5,7 @@ services:
     build: edge-api
     container_name: hmdv-srv-api
     volumes:
-      - ./edge-database:/app/edge-database
+      - ./database-edge:/app/database-edge
     ports:
       - 8000:8000
   etl:

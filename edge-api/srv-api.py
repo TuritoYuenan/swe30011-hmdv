@@ -8,9 +8,9 @@ import sqlite3
 import serial
 import os
 
-# Linux: /dev/tty{USB,ACM}#, Windows: COM#
+# Linux: `/dev/tty{USB,ACM}#`, Windows: `COM#`
 ARDUINO_PORT = os.getenv("ARDUINO_PORT", 'COM8')
-DATABASE_FILE = os.getenv("DATABASE_FILE", 'edge-database/sqlite.db')
+DATABASE_FILE = os.getenv("DATABASE_FILE", 'database-edge/sqlite.db')
 DATABASE_TABLE = os.getenv("DATABASE_TABLE", 'readings')
 
 arduino = serial.Serial(ARDUINO_PORT, 9600, timeout=1)
