@@ -101,7 +101,7 @@ async def stream_serial_data():
 		while True:
 			while arduino.in_waiting == 0: await asyncio.sleep(0.1)
 
-			line = arduino.readline()
+			line = arduino.readline().decode('utf-8').strip()
 			yield (line + "\n")
 			await asyncio.sleep(1)
 
