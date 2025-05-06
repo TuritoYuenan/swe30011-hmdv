@@ -1,7 +1,7 @@
 ## Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
 
-import asyncio
 import aiohttp
+import asyncio
 import logging
 import os
 

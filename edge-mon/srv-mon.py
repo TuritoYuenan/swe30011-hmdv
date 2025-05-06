@@ -1,8 +1,13 @@
+## Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
+
 import aiohttp
 import asyncio
-import json
 import logging
 import os
+import json
+
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+DEBUG_MODE = os.getenv("DEBUG_MODE", "True").lower() == "true"
 
 SAFE_LIMITS = {
 	"lpg": 1000,
@@ -11,37 +16,32 @@ SAFE_LIMITS = {
 	"temp": 50
 }
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
-DEBUG_MODE = os.getenv("DEBUG_MODE", "False").lower() == "true"
-
-
-async def check_readings(data_url, respond_url):
-	async with aiohttp.ClientSession() as session:
-		async with session.get(data_url) as response:
-			response.raise_for_status()
-			async for line in response.content:
-				if not line:
-					continue
-
-				data = line.decode('utf-8')
-				readings: dict = json.loads(data)
-
-				limit_exceeded = any(readings[key] > SAFE_LIMITS[key] for key in SAFE_LIMITS)
-				action_url = respond_url + ("/engage" if limit_exceeded else "/disengage")
-
-				await session.post(action_url)
-
 
 async def main():
-	try:
+	async with aiohttp.ClientSession() as session:
 		while True:
-			await check_readings(API_URL + "/readings", API_URL + "/response_system")
+			async with session.get(API_URL + "/readings") as response:
+				response.raise_for_status()
+				async for line in response.content:
+					if not line: continue
+
+					data = line.decode('utf-8')
+					readings: dict = json.loads(data)
+					logging.info("Readings: %s", readings)
+
+					limit_exceeded = any(readings[key] > SAFE_LIMITS[key] for key in SAFE_LIMITS)
+					logging.info("Limit exceeded: %s", limit_exceeded)
+
+					action_url = API_URL + "/response_system" + ("/engage" if limit_exceeded else "/disengage")
+					await session.post(action_url)
+
 			await asyncio.sleep(4)
+
+
+if __name__ == "__main__":
+	try:
+		asyncio.run(main())
 	except Exception as error:
 		logging.error("Error: %s", error)
 	except KeyboardInterrupt:
 		logging.info("* MON service manually stopped.")
-
-
-if __name__ == "__main__":
-	asyncio.run(main())
