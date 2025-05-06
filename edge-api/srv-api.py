@@ -6,6 +6,7 @@ import asyncio
 import sqlite3
 import serial
 import os
+import json
 
 # Linux: `/dev/tty{USB,ACM}#`, Windows: `COM#`
 ARDUINO_PORT = os.getenv("ARDUINO_PORT", 'COM8')
@@ -84,7 +85,7 @@ async def stream_latest_readings():
 					"co": entry[0][3],
 					"temp": entry[0][4]
 				}
-				yield f"{data}\n"
+				yield f"{json.dumps(data)}\n"
 			await asyncio.sleep(4)
 
 	return StreamingResponse(

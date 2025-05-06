@@ -18,6 +18,9 @@ SAFE_LIMITS = {
 
 
 async def main():
+	"""Main monitoring daemon procedure."""
+	logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
+
 	async with aiohttp.ClientSession() as session:
 		while True:
 			async with session.get(API_URL + "/readings") as response:
