@@ -1,11 +1,6 @@
 name: hmdv-edge-server
 
 services:
-  etl:
-    build: edge-etl
-    container_name: hmdv-srv-etl
-    volumes:
-      - ./edge-database:/app/edge-database
   api:
     build: edge-api
     container_name: hmdv-srv-api
@@ -13,13 +8,22 @@ services:
       - ./edge-database:/app/edge-database
     ports:
       - 8000:8000
+  etl:
+    build: edge-etl
+    container_name: hmdv-srv-etl
+    environment:
+      API_URL: http://api:8000
+      DEBUG_MODE: true
     depends_on:
-      - etl
+      - api
   mon:
     build: edge-mon
     container_name: hmdv-srv-mon
+    environment:
+      API_URL: http://api:8000
+      DEBUG_MODE: true
     depends_on:
-      - etl
+      - api
   web:
     build: edge-web
     container_name: hmdv-srv-web
