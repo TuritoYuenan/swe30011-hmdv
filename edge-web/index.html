@@ -85,8 +85,10 @@
 		<h2 class="title is-3">Manual override</h2>
 
 		<section class="my-4 level">
-			<button class="level-item button is-medium is-danger">Engage response system</button>
-			<button class="level-item button is-medium is-danger">Disengage response system</button>
+			<button class="level-item button is-medium is-danger" onclick="responseSystem('engage')">
+				Engage response system</button>
+			<button class="level-item button is-medium is-danger" onclick="responseSystem('disengage')">
+				Disengage response system</button>
 		</section>
 	</main>
 
@@ -98,6 +100,7 @@
 
 	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 	<script>
+		const apiUrl = 'http://api:8000';
 		const entries = { timestamps: [], lpg: [], ch4: [], co: [], temp: [], }
 
 		const data = {
@@ -135,6 +138,13 @@
 
 		const trendChart = new Chart(document.getElementById('trend-chart'), config);
 
+		function responseSystem(command) {
+			fetch(apiUrl + '/response_system/' + command, { method: 'POST' })
+				.then(response => response.json())
+				.then(data => console.log('Response:', data))
+				.catch(error => console.error('Error:', error));
+		}
+
 		function updateLiveReading(id, array, unit) {
 			const element = document.getElementById(id);
 			element.innerText = `${array[array.length - 1]} ${unit}`;
@@ -148,7 +158,7 @@
 		}
 
 		async function fetchReadings() {
-			const response = await fetch('http://localhost:8000/readings');
+			const response = await fetch(apiUrl + '/readings');
 			const reader = response.body.getReader();
 			const decoder = new TextDecoder('utf-8');
 
