@@ -35,8 +35,8 @@ async def main():
 					limit_exceeded = any(readings[key] > SAFE_LIMITS[key] for key in SAFE_LIMITS)
 					logging.info("Limit exceeded: %s", limit_exceeded)
 
-					action_url = API_URL + "/response_system" + ("/engage" if limit_exceeded else "/disengage")
-					await session.post(action_url)
+					command = ("/engage" if limit_exceeded else "/disengage")
+					await session.get(API_URL + "/response_system" + command)
 
 			await asyncio.sleep(4)
 
