@@ -4,6 +4,12 @@ services:
   api:
     build: edge-api
     container_name: hmdv-srv-api
+    environment:
+      ARDUINO_PORT: /dev/ttyUSB0
+      DATABASE_FILE: database-edge/sqlite.db
+      DATABASE_TABLE: readings
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
     volumes:
       - ./database-edge:/app/database-edge
     ports:

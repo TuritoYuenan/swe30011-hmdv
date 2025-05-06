@@ -2,7 +2,6 @@
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from typing import Optional
 import asyncio
 import sqlite3
 import serial
@@ -14,37 +13,32 @@ DATABASE_FILE = os.getenv("DATABASE_FILE", 'database-edge/sqlite.db')
 DATABASE_TABLE = os.getenv("DATABASE_TABLE", 'readings')
 
 arduino = serial.Serial(ARDUINO_PORT, 9600, timeout=1)
+db_conn = sqlite3.connect(DATABASE_FILE)
+db_conn.execute(f"""
+CREATE TABLE IF NOT EXISTS {DATABASE_TABLE} (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	LPG REAL NOT NULL,
+	CH4 REAL NOT NULL,
+	CO REAL NOT NULL,
+	Temperature REAL NOT NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
+db_conn.commit()
 
 
-class DatabaseConnection:
-	"""Singleton class to manage connection to SQLite database."""
-	_instance: Optional['DatabaseConnection'] = None
-	_connection: Optional[sqlite3.Connection] = None
+def db_insert(query: str, params: tuple) -> None:
+	"""Insert data into the database."""
+	cursor: sqlite3.Cursor = db_conn.cursor()
+	cursor.execute(query, params)
+	db_conn.commit()
 
-	def __new__(cls, *args, **kwargs) -> 'DatabaseConnection':
-		if not cls._instance:
-			cls._instance = super(DatabaseConnection, cls).__new__(cls, *args, **kwargs)
-			cls._connection = sqlite3.connect(DATABASE_FILE)
-		return cls._instance
 
-	def insert(self, query: str, params: tuple) -> None:
-		"""Insert data into the database."""
-		cursor: sqlite3.Cursor = self._connection.cursor()
-		cursor.execute(query, params)
-		self._connection.commit()
-
-	def query(self, query: str, params: tuple = ()):
-		"""Execute a query and return the results."""
-		cursor: sqlite3.Cursor = self._connection.cursor()
-		cursor.execute(query, params)
-		return cursor.fetchall()
-
-	def close_connection(self) -> None:
-		"""Close connection to database."""
-		if self._connection:
-			self._connection.close()
-			self._connection = None
-			DatabaseConnection._instance = None
+def db_query(query: str, params: tuple = ()):
+	"""Execute a query and return the results."""
+	cursor: sqlite3.Cursor = db_conn.cursor()
+	cursor.execute(query, params)
+	return cursor.fetchall()
 
 
 app = FastAPI(
@@ -59,7 +53,6 @@ app = FastAPI(
 @app.post("/readings")
 async def upload_readings(data: dict):
 	"""Upload sensor readings to the database."""
-	db_conn = DatabaseConnection()
 
 	# Extract data from the JSON payload
 	lpg = data.get("LPG")
@@ -73,7 +66,7 @@ async def upload_readings(data: dict):
 
 	# Insert data into the database
 	query = f"INSERT INTO {DATABASE_TABLE} (LPG, CH4, CO, Temperature) VALUES (?, ?, ?, ?)"
-	db_conn.insert(query, (lpg, ch4, co, temp))
+	db_insert(query, (lpg, ch4, co, temp))
 
 	return {"status": "success", "message": "Data uploaded successfully"}
 
@@ -81,11 +74,9 @@ async def upload_readings(data: dict):
 @app.get("/readings")
 async def stream_latest_readings():
 	"""Stream the latest sensor readings from database."""
-	db_conn = DatabaseConnection()
-
 	async def generator():
 		while True:
-			entry = db_conn.query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
+			entry = db_query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
 			if entry:
 				data = {
 					"lpg": entry[1],
@@ -111,7 +102,7 @@ async def stream_serial_data():
 			while arduino.in_waiting == 0: await asyncio.sleep(0.1)
 
 			line = arduino.readline()
-			yield f"{line.decode('utf-8').strip()}\n"
+			yield (line + "\n")
 			await asyncio.sleep(1)
 
 	return StreamingResponse(
