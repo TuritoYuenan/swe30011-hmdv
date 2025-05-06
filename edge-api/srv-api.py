@@ -76,13 +76,13 @@ async def stream_latest_readings():
 	"""Stream the latest sensor readings from database."""
 	async def generator():
 		while True:
-			entry = db_query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')[0]
+			entry = db_query(f'SELECT * FROM {DATABASE_TABLE} ORDER BY id DESC LIMIT 1')
 			if entry:
 				data = {
-					"lpg": entry[1],
-					"ch4": entry[2],
-					"co": entry[3],
-					"temp": entry[4]
+					"lpg": entry[0][1],
+					"ch4": entry[0][2],
+					"co": entry[0][3],
+					"temp": entry[0][4]
 				}
 				yield f"{data}\n"
 			await asyncio.sleep(4)
