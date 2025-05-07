@@ -104,7 +104,7 @@ async def stream_serial_data():
 
 			line = arduino.readline().decode('utf-8').strip()
 			yield (line + "\n")
-			await asyncio.sleep(1)
+			await asyncio.sleep(4)
 
 	return StreamingResponse(
 		generator(),

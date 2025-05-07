@@ -11,8 +11,8 @@ DEBUG_MODE = os.getenv("DEBUG_MODE", "True").lower() == "true"
 
 SAFE_LIMITS = {
 	"lpg": 1000,
-	"ch4": 2000,
-	"co": 50,
+	"ch4": 1000,
+	"co": 9,
 	"temp": 50
 }
 

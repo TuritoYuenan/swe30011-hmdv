@@ -37,7 +37,7 @@ void setup() {
   // disable buzzer
   digitalWrite(ACT_BZR, HIGH);
 
-  Timer1.initialize(2000000);
+  Timer1.initialize(4000000);
   Timer1.attachInterrupt(routine);
 }
 
