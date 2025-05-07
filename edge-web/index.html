@@ -139,7 +139,7 @@
 		const trendChart = new Chart(document.getElementById('trend-chart'), config);
 
 		function responseSystem(command) {
-			fetch(apiUrl + '/response_system/' + command, { method: 'POST' })
+			fetch(apiUrl + '/response_system/' + command, { method: 'GET' })
 				.then(response => response.json())
 				.then(data => console.log('Response:', data))
 				.catch(error => console.error('Error:', error));

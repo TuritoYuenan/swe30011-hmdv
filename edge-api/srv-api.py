@@ -1,6 +1,6 @@
 ## Copyright (C) 2025 Minh-Triet Nguyen-Ta <104993913@student.swin.edu.au>
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.responses import StreamingResponse
 import asyncio
 import sqlite3
@@ -114,8 +114,9 @@ async def stream_serial_data():
 
 
 @app.get("/response_system/{command}")
-def toggle_response_system(command: str):
+def toggle_response_system(response: Response, command: str):
 	"""Toggle the response system based on the command."""
+	response.headers["Access-Control-Allow-Origin"] = "*"
 	match command:
 		case "engage":
 			arduino.write(b"2")

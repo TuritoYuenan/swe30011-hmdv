@@ -28,8 +28,7 @@ async def main():
 				async for line in response.content:
 					if not line: continue
 
-					data = line.decode('utf-8')
-					readings: dict = json.loads(data)
+					readings: dict = json.loads(line.decode('utf-8'))
 					logging.info("Readings: %s", readings)
 
 					limit_exceeded = any(readings[key] > SAFE_LIMITS[key] for key in SAFE_LIMITS)
@@ -45,6 +44,6 @@ if __name__ == "__main__":
 	try:
 		asyncio.run(main())
 	except Exception as error:
-		logging.error("Error: %s", error)
+		logging.error("* Error: %s", error)
 	except KeyboardInterrupt:
 		logging.info("* MON service manually stopped.")
